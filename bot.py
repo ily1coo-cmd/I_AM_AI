@@ -25,7 +25,7 @@ import google.generativeai as genai
 # ─────────────────────────────────────────────
 BOT_TOKEN        = os.getenv("BOT_TOKEN", "8920483390:AAECgLUKMF6KClOTccqBwM7Uuv1ArFDTdzo")
 ADMIN_BOT_TOKEN  = os.getenv("ADMIN_BOT_TOKEN", "8923834508:AAEoQMf1D65gLhhOEnqlUK1NSnWfNAH9CO0")
-GEMINI_API_KEY   = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6L1damXWzgCnbboYAL4AAlkpRmW8HgzU2aok_CGV8aIiA")
+GEMINI_API_KEY   = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6KbgTPvDhS5yXFfIbDgzQt0eS_O80XkiThX7JFuQ_Y7kQ")
 ADMIN_USER_ID    = int(os.getenv("ADMIN_USER_ID", "5098399620"))
 RESULT_JSON_PATH = "result.json"        # путь к экспорту Telegram
 
