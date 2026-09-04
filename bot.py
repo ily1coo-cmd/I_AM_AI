@@ -18,7 +18,7 @@ from telegram.ext import (
 )
 
 # Google Gemini
-import google.generativeai as genai
+from google import genai
 
 # ─────────────────────────────────────────────
 # НАСТРОЙКИ — заполни перед запуском
@@ -40,7 +40,7 @@ GEMINI_MODEL = "gemini-3.5-flash-lite"
 MAX_STYLE_MESSAGES = 1000
 
 # Сколько сообщений помнить в одном диалоге
-MAX_HISTORY = 40
+MAX_HISTORY = 30
 # ─────────────────────────────────────────────
 
 logging.basicConfig(
@@ -164,18 +164,29 @@ def build_system_prompt(your_name: str, messages: list[str]) -> str:
 # ══════════════════════════════════════════════
 
 def ask_gemini(
-    model: genai.GenerativeModel,
+    client: genai.Client,
     history: list[dict],
-    user_message: str
+    user_message: str,
+    system_prompt: str,
 ) -> str:
-    # Добавляем новое сообщение в историю
+    contents = [
+        {
+            "role": "model" if item["role"] == "model" else "user",
+            "parts": [{"text": item["parts"][0]}],
+        }
+        for item in history
+    ]
+    contents.append({"role": "user", "parts": [{"text": user_message}]})
+    response = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=contents,
+        config={"system_instruction": system_prompt, "temperature": 0.9},
+    )
+    reply = (response.text or "").strip()
+    if not reply:
+        raise RuntimeError("Gemini вернул пустой ответ")
+
     history.append({"role": "user", "parts": [user_message]})
-
-    # Создаём сессию с историей (без последнего — оно передаётся отдельно)
-    chat = model.start_chat(history=history[:-1])
-    response = chat.send_message(user_message)
-    reply = response.text.strip()
-
     history.append({"role": "model", "parts": [reply]})
 
     # Обрезаем историю
@@ -259,6 +270,15 @@ async def cmd_admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def handle_admin_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await admin_only(update):
+        return
+    await update.message.reply_text(
+        "Это админский бот. Команды: /status, /stop, /resume, /users\n"
+        "Для ответа пользователю: /reply USER_ID текст"
+    )
+
+
 async def cmd_resume(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global auto_reply_enabled
     if not await admin_only(update):
@@ -309,6 +329,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.effective_user:
         return
 
+    logger.info(
+        "Получено сообщение от %s (%s)",
+        update.effective_user.full_name,
+        update.effective_user.id,
+    )
     uid = update.effective_user.id
     known_users[uid] = update.effective_user.full_name or str(uid)
     await forward_to_admin(update, context)
@@ -327,10 +352,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
 
     try:
-        reply = ask_gemini(
-            model=context.bot_data["gemini"],
+        reply = await asyncio.to_thread(
+            ask_gemini,
+            client=context.bot_data["gemini"],
             history=dialog_history[uid],
-            user_message=text
+            user_message=text,
+            system_prompt=context.bot_data["system_prompt"],
         )
         await update.message.reply_text(reply)
         await notify_admin_reply(context, uid, reply)
@@ -366,7 +393,8 @@ def main():
     if not BOT_TOKEN or not ADMIN_BOT_TOKEN or not GEMINI_API_KEY or not ADMIN_USER_ID:
         raise ValueError(
             "Заполни переменные окружения BOT_TOKEN, ADMIN_BOT_TOKEN, "
-            "GEMINI_API_KEY и ADMIN_USER_ID."
+            "GEMINI_API_KEY и ADMIN_USER_ID. GEMINI_API_KEY должен быть ключом "
+            "из Google AI Studio, а не ключом Groq/OpenRouter."
         )
 
     logger.info("Загружаю твои сообщения из result.json...")
@@ -378,16 +406,12 @@ def main():
     system_prompt = build_system_prompt(your_name, my_messages)
     logger.info(f"Стиль загружен. Имя: {your_name}, сообщений: {len(my_messages)}")
 
-    # Настраиваем Gemini
-    genai.configure(api_key=GEMINI_API_KEY)
-    gemini_model = genai.GenerativeModel(
-        model_name=GEMINI_MODEL,
-        system_instruction=system_prompt
-    )
+    # Настраиваем Gemini через новый официальный SDK.
+    gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 
     app = Application.builder().token(BOT_TOKEN).build()
     admin_app = Application.builder().token(ADMIN_BOT_TOKEN).build()
-    app.bot_data["gemini"] = gemini_model
+    app.bot_data["gemini"] = gemini_client
     app.bot_data["system_prompt"] = system_prompt
     app.bot_data["your_name"] = your_name
     app.bot_data["main_bot"] = app.bot
@@ -405,6 +429,7 @@ def main():
     admin_app.add_handler(CommandHandler("status", cmd_status))
     admin_app.add_handler(CommandHandler("users", cmd_users))
     admin_app.add_handler(CommandHandler("reply", cmd_reply))
+    admin_app.add_handler(MessageHandler(filters.ALL, handle_admin_message))
 
     asyncio.run(run_apps(app, admin_app))
 
