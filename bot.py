@@ -23,7 +23,7 @@ from google import genai
 # ─────────────────────────────────────────────
 # НАСТРОЙКИ — заполни перед запуском
 # ─────────────────────────────────────────────
-BOT_TOKEN        = os.getenv("BOT_TOKEN", "8920483390:AAECgLUKMF6KClOTccqBwM7Uuv1ArFDTdzo")
+BOT_TOKEN        = os.getenv("BOT_TOKEN", "8932288529:AAFTTPFX5ZIC6mUYkPDpMWB2N3fus7roBW8")
 ADMIN_BOT_TOKEN  = os.getenv("ADMIN_BOT_TOKEN", "8923834508:AAEoQMf1D65gLhhOEnqlUK1NSnWfNAH9CO0")
 GEMINI_API_KEY   = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6LVUdJ9KKojKu4l-uJtt6BlIZXGsHPacWZAlhhanz11nA")
 ADMIN_USER_ID    = int(os.getenv("ADMIN_USER_ID", "5098399620"))
