@@ -18,7 +18,7 @@ from telegram.ext import (
 )
 
 # Google Gemini
-from google.generativeai import genai
+from google import genai 
 
 # ─────────────────────────────────────────────
 # НАСТРОЙКИ — заполни перед запуском
