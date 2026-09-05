@@ -18,7 +18,7 @@ from telegram.ext import (
 )
 
 # Google Gemini
-from google import genai
+from google.generativeai import genai
 
 # ─────────────────────────────────────────────
 # НАСТРОЙКИ — заполни перед запуском
@@ -436,3 +436,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+с
