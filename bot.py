@@ -34,8 +34,7 @@ RESULT_JSON_PATH = "result.json"        # путь к экспорту Telegram
 YOUR_NAME = ""
 
 # Модель. gemini-1.5-flash — быстрая и бесплатная
-GEMINI_MODEL = "gemini-2.0-flash-lite"
-
+GEMINI_MODEL = "gemini-2.5-flash"
 # Сколько твоих сообщений брать для анализа стиля
 MAX_STYLE_MESSAGES = 1000
 
